@@ -8,6 +8,7 @@
   home.packages = with pkgs; [
     # Development Tools
     git
+    jq
     pre-commit
     gnumake
     vscode
