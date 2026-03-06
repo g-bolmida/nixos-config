@@ -8,14 +8,18 @@
   home.packages = with pkgs; [
     # Development Tools
     git
+    git-lfs
     jq
     pre-commit
     gnumake
     vscode
     nano
     wget
+    fnm
     conda
+    terraform
     python313Packages.huggingface-hub
+    (godotPackages_4_6.godot)
 
     # Container & Kubernetes
     kubectl
@@ -25,7 +29,10 @@
 
     # System Utilities
     htop
-    neofetch
+    restic
+    redu
+    rustdesk
+    kdePackages.ksshaskpass
 
     # Office & Productivity
     libreoffice
@@ -54,13 +61,20 @@
 
     # Media
     vlc
+    audacity
+    blender
+    blockbench
+    gimp
+    inkscape
     orca-slicer
+    darktable
 
     # Hardware & Utilities
     android-tools
     rpi-imager
     claude-code
     redisinsight
+    ncdu
   ];
 
   home.sessionVariables = {
@@ -72,4 +86,11 @@
     __GL_SHADER_DISK_CACHE_SIZE = "5097152"; # 2GB in MB
     __GL_SHADER_DISK_CACHE_PATH = "/home/gbolmida/.cache/nvidia-shader-cache";
   };
+
+  # FNM (Fast Node Manager) Configuration
+  programs.bash.enable = true;
+  programs.bash.initExtra = ''
+    eval "$(${pkgs.fnm}/bin/fnm env --use-on-cd)"
+  '';
+
 }

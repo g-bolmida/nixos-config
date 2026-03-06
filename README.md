@@ -9,3 +9,6 @@ Run garbage collection
 
 optimize store
 `sudo nix store optimise`
+
+If taskbar items start dissapearing, run this:
+- https://github.com/NixOS/nixpkgs/issues/308252#issuecomment-2543048917

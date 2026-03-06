@@ -1,5 +1,8 @@
 { config, pkgs, ... }:
 
+let
+  secrets = import ./configuration-secrets.nix;
+in
 {
   imports =
     [
@@ -15,13 +18,13 @@
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelPackages = pkgs.linuxPackages;
 
-  # System Behavior
-  systemd.sleep.extraConfig = ''
-    AllowSuspend=no
-    AllowHibernation=no
-    AllowHybridSleep=no
-    AllowSuspendThenHibernate=no
-  '';
+  # This is busted atm
+  #systemd.sleep.settings.Sleep = ''
+  #  AllowSuspend=no
+  #  AllowHibernation=no
+  #  AllowHybridSleep=no
+  #  AllowSuspendThenHibernate=no
+  #'';
 
   # Networking
   networking.hostName = "geo-nix";
@@ -100,15 +103,32 @@
     gamescopeSession.enable = true;
   };
   programs.gamemode.enable = true;
+  services.sunshine = {
+    enable = true;
+    autoStart = true;
+    capSysAdmin = true;
+    openFirewall = true;
+  };
 
-  # Virtualization & Containers
+
+  # Docker w/ NVIDIA Container Toolkit
   virtualisation.docker = {
     enable = true;
+    daemon.settings = {
+      runtimes = {
+        nvidia = {
+          path = "${pkgs.nvidia-container-toolkit.tools}/bin/nvidia-container-runtime";
+          runtimeArgs = [];
+        };
+      };
+    };
   };
 
   environment.systemPackages = with pkgs; [
     docker
   ];
+
+  hardware.nvidia-container-toolkit.enable = true;
 
   # System Services
   services.ollama = {
@@ -119,6 +139,56 @@
 
   services.flatpak.enable = true;
 
+  programs.nix-ld.enable = true;
+  programs.nix-ld.libraries = with pkgs; [
+     fnm
+  ];
+
+  services.teleport = {
+    enable = true;
+    package = pkgs.teleport_18;
+    settings = {
+      version = "v3";
+      teleport = {
+        nodename = "nixos-desktop";
+        data_dir = "/var/lib/teleport";
+        join_params = {
+          token_name = secrets.teleport.token_name;
+          method = "token";
+        };
+        proxy_server = secrets.teleport.proxy_server;
+        log = {
+          output = "stderr";
+          severity = "INFO";
+          format = {
+            output = "text";
+          };
+        };
+        ca_pin = "";
+        diag_addr = "";
+      };
+      auth_service = {
+        enabled = "no";
+      };
+      ssh_service = {
+        enabled = "yes";
+        listen_addr = "127.0.0.1:3022";
+        labels = {
+          hostname = "nixos-desktop";
+        };
+      };
+      proxy_service = {
+        enabled = "no";
+        https_keypairs = [];
+        https_keypairs_reload_interval = "0s";
+        acme = {};
+      };
+      app_service = {
+        enabled = "no";
+      };
+    };
+  };
+
   xdg.portal.extraPortals = [ pkgs.xdg-desktop-portal-gtk ];
   xdg.portal.config.common.default = "gtk";
 
@@ -127,6 +197,17 @@
     device = "/dev/disk/by-uuid/fbdf6a62-a5ee-48cd-8687-242a9eb22b6b";
     fsType = "ext4";
   };
+
+  # Auto Cleanup
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 14d";
+  };
+
+  nix.settings.auto-optimise-store = true;
+
+  boot.tmp.cleanOnBoot = true;
 
   system.stateVersion = "25.05";
 }
